@@ -1,144 +1,161 @@
-# CookLangX Specification v0.1-draft
+# CookLangX 仕様 v0.1-draft
 
-CookLangX is a domain specific language for representing cooking recipes as executable procedures.
-This specification defines a practical hybrid model: YAML for structure and a compact DSL string for operation lines.
+CookLangX は、料理レシピを実行可能な手順として表現するためのドメイン特化言語です。  
+本仕様は、構造表現に YAML、操作行にコンパクトな DSL 文字列を用いる実用的なハイブリッドモデルを定義します。
 
-## 1. Goals
+## 1. 目的
 
-CookLangX has the following goals:
+CookLangX は次の目的を持ちます。
 
-1. Human writable and machine readable recipes.
-2. Explicit representation of dependencies and parallelizable work.
-3. Reliable scaling of ingredient quantities by servings.
-4. Interoperability with timers, shopping lists, nutrition analyzers, and future automation.
+1. 人間が書きやすく、機械が読み取りやすいレシピ表現を実現する。
+2. 依存関係と並列実行可能な作業を明示的に表現する。
+3. 人数に応じた材料量スケーリングを信頼性高く行う。
+4. タイマー、買い物リスト、栄養解析、将来の自動化との相互運用性を確保する。
 
-## 2. Design Principles
+## 2. 設計原則
 
-1. Recipe text is treated as operations and state transitions, not only prose.
-2. A recipe is a directed acyclic graph (DAG) of steps.
-3. Natural language notes may coexist with formal structure.
-4. Core syntax remains small; advanced features are optional capability levels.
+1. レシピ記述は単なる文章ではなく、操作と状態遷移として扱う。
+2. レシピはステップから成る有向非巡回グラフ（DAG）として扱う。
+3. 自然言語ノートは構造化データと共存できる。
+4. コア構文は小さく保ち、高度機能は能力レベルで段階化する。
 
-## 3. Conformance Terms
+## 3. 適合性に関する用語
 
-The key words MUST, MUST NOT, SHOULD, SHOULD NOT, and MAY are to be interpreted as described in RFC 2119 style usage.
+本仕様における MUST、MUST NOT、SHOULD、SHOULD NOT、MAY は、RFC 2119 スタイルの慣用に従って解釈されます。
 
-## 4. File Format
+### 3.1 日本語話者向けの読み方
 
-1. Recommended extension: `.ckx`.
-2. Encoding: UTF-8.
-3. Canonical representation: YAML document.
-4. MIME (proposed): `application/vnd.cooklangx+yaml`.
+英語の規範語は、日常的な「べき」「推奨」とは重みが異なります。実装判断で迷わないため、次の意味で読み替えてください。
 
-## 5. Document Model
+1. MUST: 必須。守らない実装は本仕様に適合しない。
+2. MUST NOT: 禁止。行うと本仕様に適合しない。
+3. SHOULD: 強い推奨。通常は守るべきで、外すなら合理的理由と影響説明が必要。
+4. SHOULD NOT: 強い非推奨。通常は避けるべきで、採用するなら合理的理由が必要。
+5. MAY: 任意。実装してもしなくても適合性は維持される。
 
-A CookLangX document has these top-level sections:
+補足:
 
-1. `meta` (required)
-2. `ingredients` (required)
-3. `tools` (optional)
-4. `definitions` (optional)
-5. `steps` (required)
+1. 仕様文の「必須」「禁止」は互換性や安全性に直結するため、プロダクト都合で緩和しないこと。
+2. 「推奨」「非推奨」は、性能・実装コスト・対象ユーザーに応じて例外を許容できる。
+3. MAY 項目を未実装にする場合でも、ドキュメントで未対応機能を明示すると運用上の混乱を防げる。
+4. 本仕様では、適合性判定の基準は英語規範語（MUST/SHOULD/MAY）を優先し、日本語訳は理解補助として扱う。
+
+## 4. ファイル形式
+
+1. 推奨拡張子: `.ckx`
+2. 文字コード: UTF-8
+3. 正規表現形式: YAML ドキュメント
+4. MIME（提案）: `application/vnd.cooklangx+yaml`
+
+## 5. ドキュメントモデル
+
+CookLangX ドキュメントは次のトップレベルセクションで構成されます。
+
+1. `meta`（必須）
+2. `ingredients`（必須）
+3. `tools`（任意）
+4. `definitions`（任意）
+5. `steps`（必須）
 
 ### 5.1 meta
 
-`meta` MUST include:
+`meta` は次を MUST で含むこと。
 
-1. `name` (string)
-2. `servings` (number > 0)
+1. `name`（文字列）
+2. `servings`（0 より大きい数値）
 
-`meta` MAY include:
+`meta` は次を MAY で含めてもよい。
 
-1. `author` (string)
-2. `lang` (BCP47 language tag, e.g. `ja`, `en-US`)
-3. `tags` (string array)
-4. `time_total` (duration)
+1. `author`（文字列）
+2. `lang`（BCP47 言語タグ。例: `ja`, `en-US`）
+3. `tags`（文字列配列）
+4. `time_total`（duration）
 
 ### 5.2 ingredients
 
-`ingredients` is an array of ingredient objects.
+`ingredients` は材料オブジェクトの配列です。
 
-Each ingredient MUST include:
+各材料は次を MUST で含むこと。
 
-1. `id` (identifier)
-2. `name` (string)
+1. `id`（識別子）
+2. `name`（文字列）
 
-Each ingredient MAY include:
+各材料は次を MAY で含めてもよい。
 
-1. `amount` (number)
-2. `unit` (unit string)
-3. `scalable` (boolean, default true)
-4. `state` (string, e.g. `raw`, `diced`)
-5. `substitute` (array of ingredient ids)
-6. `nutrition` (object)
+1. `amount`（数値）
+2. `unit`（単位文字列）
+3. `scalable`（真偽値、既定値 true）
+4. `state`（文字列。例: `raw`, `diced`）
+5. `substitute`（材料 id の配列）
+6. `nutrition`（オブジェクト）
 
 ### 5.3 tools
 
-`tools` is an array of tool objects.
+`tools` は道具オブジェクトの配列です。
 
-Each tool MUST include:
+各道具は次を MUST で含むこと。
 
-1. `id` (identifier)
-2. `name` (string)
+1. `id`（識別子）
+2. `name`（文字列）
 
-Each tool MAY include:
+各道具は次を MAY で含めてもよい。
 
-1. `capacity` (number or string)
-2. `temperature_range` (object with `min` and/or `max`)
+1. `capacity`（数値または文字列）
+2. `temperature_range`（`min` と/または `max` を持つオブジェクト）
 
 ### 5.4 definitions
 
-`definitions` is an array of reusable macro operations.
+`definitions` は再利用可能なマクロ操作の配列です。
 
-Each definition MUST include:
+各定義は次を MUST で含むこと。
 
-1. `id` (identifier)
-2. `params` (string array, MAY be empty)
-3. `body` (array of operation lines or step templates)
+1. `id`（識別子）
+2. `params`（文字列配列。空配列可）
+3. `body`（操作行またはステップテンプレートの配列）
 
 ### 5.5 steps
 
-`steps` is an ordered array for readability, but execution order is determined by dependencies.
+`steps` は可読性のため順序付き配列ですが、実行順序は依存関係で決定されます。
 
-Each step MUST include:
+各ステップは次を MUST で含むこと。
 
-1. `id` (identifier)
-2. `run` (DSL operation line)
+1. `id`（識別子）
+2. `run`（DSL 操作行）
 
-Each step MAY include:
+各ステップは次を MAY で含めてもよい。
 
-1. `uses` (array of ingredient refs and/or output refs)
-2. `tools` (array of tool ids)
-3. `time` (duration)
-4. `temperature` (temperature)
-5. `depends_on` (array of step ids)
-6. `state_in` (object)
-7. `state_out` (object)
-8. `produces` (output identifier)
-9. `yield` (object: amount and unit)
-10. `when` (expression string; capability Extended)
-11. `repeat` (repeat descriptor; capability Extended)
-12. `note` (natural language note)
+1. `uses`（材料参照および/または出力参照の配列）
+2. `tools`（tool id の配列）
+3. `time`（duration）
+4. `temperature`（temperature）
+5. `depends_on`（step id の配列）
+6. `state_in`（オブジェクト）
+7. `state_out`（オブジェクト）
+8. `produces`（出力識別子）
+9. `yield`（amount と unit を持つオブジェクト）
+10. `when`（式文字列。Extended 能力）
+11. `repeat`（繰り返し記述子。Extended 能力）
+12. `note`（自然言語ノート）
 
-## 6. Identifier and Reference Rules
+## 6. 識別子および参照ルール
 
-### 6.1 Identifier
+### 6.1 識別子
 
-Identifier regex:
+識別子の正規表現:
 
 ```text
 ^[a-z][a-z0-9_]*$
 ```
 
-Identifiers are case-sensitive.
+識別子は大文字小文字を区別します。
 
-### 6.2 References
+### 6.2 参照
 
-1. Ingredient reference: `$<ingredient_id>`
-2. Step output reference: `%<step_or_output_id>`
-3. Tool reference inside DSL arguments: `&<tool_id>` (optional shorthand)
+1. 材料参照: `$<ingredient_id>`
+2. ステップ出力参照: `%<step_or_output_id>`
+3. DSL 引数内の道具参照: `&<tool_id>`（省略形、任意）
 
-Examples:
+例:
 
 ```text
 $spaghetti
@@ -148,23 +165,23 @@ $spaghetti
 
 ## 7. Operation DSL
 
-`run` contains one operation line.
+`run` は 1 行の操作を保持します。
 
-### 7.1 Core Form
+### 7.1 コア形式
 
 ```text
 <action> <arg>* [-> <output_id>]
 ```
 
-Where:
+定義:
 
-1. `<action>` is an identifier.
-2. `<arg>` is one of:
-  - reference (`$id`, `%id`, `&id`)
-  - key-value token (`key=value`)
-  - quoted text (`"..."`)
+1. `<action>` は識別子。
+2. `<arg>` は次のいずれか。
+   - 参照（`$id`, `%id`, `&id`）
+   - キー値トークン（`key=value`）
+   - クォート文字列（`"..."`）
 
-Examples:
+例:
 
 ```text
 boil $spaghetti water=2L salt=2g -> boiled_pasta
@@ -172,9 +189,9 @@ fry $bacon heat=medium -> crisp_bacon
 mix %boiled_pasta %crisp_bacon $egg -> pasta_mix
 ```
 
-### 7.2 Recommended Primitive Actions
+### 7.2 推奨プリミティブアクション
 
-Core action names SHOULD include:
+コア実装のアクション名は、少なくとも次を SHOULD で含むことが推奨されます。
 
 1. `wash`
 2. `cut`
@@ -190,75 +207,75 @@ Core action names SHOULD include:
 12. `rest`
 13. `serve`
 
-Implementations MAY support additional action names.
+実装は追加のアクション名を MAY でサポートして構いません。
 
-## 8. Time and Temperature
+## 8. 時間と温度
 
 ### 8.1 Duration
 
-Duration lexical forms:
+duration の字句形式:
 
 1. `30s`
 2. `8min`
 3. `1h`
-4. ISO 8601 duration MAY be supported (`PT8M`).
+4. ISO 8601 duration を MAY でサポートしてよい（`PT8M`）。
 
-Canonical normalized unit is seconds.
+正規化後の標準単位は秒です。
 
 ### 8.2 Temperature
 
-Supported forms:
+サポートされる形式:
 
 1. `180C`
 2. `356F`
-3. qualitative heat (`low`, `medium`, `high`)
+3. 定性的火加減（`low`, `medium`, `high`）
 
-If both numeric temperature and qualitative heat are present, numeric value takes precedence.
+数値温度と定性的火加減が同時にある場合、数値温度を優先します。
 
-## 9. Units and Scaling
+## 9. 単位とスケーリング
 
-### 9.1 Unit Set
+### 9.1 単位セット
 
-Recommended built-in units:
+推奨組み込み単位:
 
-1. Mass: `mg`, `g`, `kg`
-2. Volume: `ml`, `l`, `tsp`, `tbsp`, `cup`
-3. Count: `piece`, `clove`, `leaf`
+1. 質量: `mg`, `g`, `kg`
+2. 体積: `ml`, `l`, `tsp`, `tbsp`, `cup`
+3. 個数: `piece`, `clove`, `leaf`
 
-### 9.2 Scaling Rule
+### 9.2 スケーリング規則
 
-Given:
+次を与える:
 
-1. original servings $S_o$
-2. target servings $S_t$
+1. 元の人数 $S_o$
+2. 目標人数 $S_t$
 
-For each ingredient with `scalable=true`, scaled amount is:
+`scalable=true` の各材料について、スケール後の量は次式とする。
 
 $$
 amount' = amount \times \frac{S_t}{S_o}
 $$
 
-If `scalable=false`, amount MUST remain unchanged.
+`scalable=false` の場合、amount は変更してはならない（MUST）。
 
-Rounding policy SHOULD be configurable; default is half-up to 2 decimal places for non-count units.
+丸め方針は設定可能であることが SHOULD。既定は個数単位以外を小数第 2 位の四捨五入（half-up）とします。
 
-## 10. Dependency and Execution Semantics
+## 10. 依存関係と実行セマンティクス
 
-1. A step depends on explicit `depends_on`.
-2. A step also has implicit dependencies from `%output` references in `run` or `uses`.
-3. Final dependency graph MUST be acyclic.
-4. Any two steps without path constraints MAY run in parallel.
-5. A scheduler SHOULD prioritize critical path reduction while respecting tool conflicts.
+1. ステップは明示 `depends_on` に依存する。
+2. ステップは `run` または `uses` の `%output` 参照から暗黙依存も持つ。
+3. 最終依存グラフは非循環（acyclic）でなければならない（MUST）。
+4. 経路制約のない 2 ステップは並列実行してよい（MAY）。
+5. スケジューラは道具競合を尊重しつつ、クリティカルパス短縮を優先することが SHOULD。
 
-### 10.1 Tool Conflict Rule
+### 10.1 道具競合ルール
 
-If two ready steps require the same exclusive tool instance, they MUST NOT execute simultaneously.
+同一の排他的道具インスタンスを必要とする準備完了ステップ同士は、同時実行してはならない（MUST NOT）。
 
-## 11. State Transition Model
+## 11. 状態遷移モデル
 
-Each step MAY define `state_in` and `state_out`.
+各ステップは `state_in` と `state_out` を MAY で定義できます。
 
-Example:
+例:
 
 ```yaml
 state_in:
@@ -267,59 +284,59 @@ state_out:
   onion: translucent
 ```
 
-When state constraints are present:
+状態制約がある場合:
 
-1. `state_in` SHOULD be validated against prior producing steps.
-2. unresolved required states SHOULD raise warnings or errors by strictness mode.
+1. `state_in` は先行する生成ステップに照らして検証されることが SHOULD。
+2. 解決不能な必要状態は、厳格度モードに応じて警告またはエラーを出すことが SHOULD。
 
-## 12. Natural Language Coexistence
+## 12. 自然言語との共存
 
-`note` allows retaining human-friendly hints.
+`note` により人間向けヒントを保持できます。
 
-Implementations:
+実装要件:
 
-1. MUST ignore `note` for dependency semantics.
-2. MAY show `note` in UI, voice guidance, and print output.
+1. 依存関係セマンティクスでは `note` を無視しなければならない（MUST）。
+2. UI、音声ガイド、印刷出力で `note` を表示してよい（MAY）。
 
-## 13. Capability Levels
+## 13. 能力レベル
 
 ### 13.1 Core
 
-A Core implementation MUST support:
+Core 実装は次を MUST でサポートすること。
 
-1. Sections in Chapter 5.
-2. DSL in 7.1.
-3. Time in 8.1.
-4. Scaling in Chapter 9.
-5. DAG validation in Chapter 10.
+1. 第 5 章のセクション
+2. 7.1 の DSL
+3. 8.1 の時間表現
+4. 第 9 章のスケーリング
+5. 第 10 章の DAG 検証
 
 ### 13.2 Extended
 
-Extended adds:
+Extended は次を追加します。
 
-1. `when` conditional step activation.
-2. `repeat` loops.
-3. `definitions` macro expansion.
-4. nutrition and shopping-list integration metadata.
+1. `when` による条件付きステップ有効化
+2. `repeat` ループ
+3. `definitions` マクロ展開
+4. 栄養・買い物リスト連携メタデータ
 
-## 14. Validation Rules
+## 14. バリデーション規則
 
-A conforming validator SHOULD report machine-readable error codes.
+適合バリデータは機械可読なエラーコードを報告することが SHOULD。
 
-Recommended error set:
+推奨エラーセット:
 
-1. `CKX001`: missing required section.
-2. `CKX002`: invalid identifier format.
-3. `CKX003`: duplicate identifier.
-4. `CKX004`: unknown ingredient/tool/output reference.
-5. `CKX005`: dependency cycle detected.
-6. `CKX006`: invalid duration format.
-7. `CKX007`: invalid temperature format.
-8. `CKX008`: non-positive servings.
-9. `CKX009`: unsupported unit.
-10. `CKX010`: macro expansion failure.
+1. `CKX001`: 必須セクション欠落
+2. `CKX002`: 識別子形式不正
+3. `CKX003`: 識別子重複
+4. `CKX004`: 不明な材料/道具/出力参照
+5. `CKX005`: 依存サイクル検出
+6. `CKX006`: duration 形式不正
+7. `CKX007`: temperature 形式不正
+8. `CKX008`: servings が正でない
+9. `CKX009`: 未サポート単位
+10. `CKX010`: マクロ展開失敗
 
-## 15. Canonical Example (Carbonara)
+## 15. 正準例（カルボナーラ）
 
 ```yaml
 meta:
@@ -378,46 +395,45 @@ steps:
     depends_on: [combine]
 ```
 
-## 16. Informative Internal Pipeline
+## 16. 参考: 内部パイプライン
 
-Typical processing pipeline:
+典型的な処理パイプライン:
 
-1. Parse YAML.
-2. Parse DSL lines into AST nodes.
-3. Resolve symbol table (ingredients, tools, outputs, step ids).
-4. Build dependency DAG.
-5. Validate constraints.
-6. Emit execution plan, timers, and derived artifacts.
+1. YAML をパースする。
+2. DSL 行を AST ノードへパースする。
+3. シンボル表（ingredients, tools, outputs, step ids）を解決する。
+4. 依存 DAG を構築する。
+5. 制約を検証する。
+6. 実行計画、タイマー、派生成果物を出力する。
 
-## 17. JSON Interchange Mapping (Informative)
+## 17. JSON 相互交換マッピング（参考）
 
-Implementations MAY expose normalized JSON with the same semantic fields.
+実装は同一セマンティクスを持つ正規化 JSON を公開してよい（MAY）。
 
-Recommended minimal fields:
+推奨最小フィールド:
 
 1. `meta`
 2. `ingredients`
 3. `tools`
 4. `steps`
-5. `graph` (`nodes`, `edges`)
+5. `graph`（`nodes`, `edges`）
 
-## 18. Versioning and Forward Compatibility
+## 18. バージョニングと前方互換
 
-1. Document SHOULD include `meta.spec_version` (e.g. `0.1`).
-2. Unknown fields MUST be ignored unless strict mode is enabled.
-3. Breaking grammar changes MUST increment major version.
+1. ドキュメントは `meta.spec_version`（例: `0.1`）を含むことが SHOULD。
+2. 未知フィールドは strict mode 有効時を除き無視しなければならない（MUST）。
+3. 破壊的な文法変更はメジャーバージョンを上げなければならない（MUST）。
 
-## 19. Security and Safety Considerations
+## 19. セキュリティと安全性の考慮
 
-1. This format does not guarantee food safety.
-2. Implementations SHOULD allow warnings for undercooking risk patterns.
-3. Tool and temperature instructions SHOULD be validated before automatic device control.
+1. 本フォーマットは食品安全を保証しない。
+2. 実装は加熱不足リスクパターンに対する警告を出せることが SHOULD。
+3. 自動機器制御の前に、道具指示と温度指示を検証することが SHOULD。
 
-## 20. Open Items for v0.2
+## 20. v0.2 に向けた未解決項目
 
-1. Formal EBNF for DSL.
-2. Standard action ontology and multilingual aliases.
-3. Allergen and nutrition profile schema.
-4. Deterministic scheduler policy profiles.
-5. IoT command binding profile for smart appliances.
-
+1. DSL の形式 EBNF
+2. 標準アクションオントロジーと多言語エイリアス
+3. アレルゲンおよび栄養プロファイルスキーマ
+4. 決定的スケジューラ方針プロファイル
+5. スマート家電向け IoT コマンドバインディングプロファイル
