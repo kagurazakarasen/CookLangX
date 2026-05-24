@@ -281,6 +281,125 @@ mix %unknown_output -> plated
 2. `heat==medium` は `kv_token` 構文違反。
 3. `%unknown_output` はシンボル解決時に未知参照。
 
+### 7.4 EBNF から導出される AST ノード定義
+
+本節は 7.3 の EBNF をパースした結果として生成される AST ノードの最小仕様を定義します。
+
+#### 7.4.1 ルートノード
+
+`run` 1 行に対して、実装は次の `RunLineNode` を 1 つ生成すること。
+
+```json
+{
+  "type": "RunLine",
+  "action": { "type": "Identifier", "name": "boil" },
+  "args": [],
+  "output": null,
+  "span": { "start": 0, "end": 4 }
+}
+```
+
+フィールド要件:
+
+1. `type` は固定値 `RunLine`（MUST）。
+2. `action` は `IdentifierNode`（MUST）。
+3. `args` は `ArgumentNode` 配列（空配列可、MUST）。
+4. `output` は `IdentifierNode` または `null`（MUST）。
+5. `span` は入力文字列上の半開区間 `[start, end)`（SHOULD）。
+
+#### 7.4.2 ノード型一覧
+
+`ArgumentNode` は以下の判別共用体とする。
+
+```text
+ArgumentNode = ReferenceNode | KVTokenNode | StringLiteralNode
+ReferenceNode = IngredientRefNode | OutputRefNode | ToolRefNode
+```
+
+各ノード定義:
+
+```json
+{
+  "IdentifierNode": {
+    "type": "Identifier",
+    "name": "identifier"
+  },
+  "IngredientRefNode": {
+    "type": "IngredientRef",
+    "name": "spaghetti"
+  },
+  "OutputRefNode": {
+    "type": "OutputRef",
+    "name": "boiled_pasta"
+  },
+  "ToolRefNode": {
+    "type": "ToolRef",
+    "name": "frying_pan"
+  },
+  "KVTokenNode": {
+    "type": "KV",
+    "key": { "type": "Identifier", "name": "water" },
+    "value": {
+      "type": "BareValue",
+      "raw": "2L"
+    }
+  },
+  "StringLiteralNode": {
+    "type": "StringLiteral",
+    "value": "finish with olive oil",
+    "raw": "\"finish with olive oil\""
+  }
+}
+```
+
+#### 7.4.3 EBNF 規則から AST へのマッピング
+
+1. `action` は `IdentifierNode` に写像する。
+2. `ingredient_ref` は `IngredientRefNode` に写像する（先頭 `$` は保持せず `name` に格納）。
+3. `output_ref` は `OutputRefNode` に写像する（先頭 `%` は保持しない）。
+4. `tool_ref` は `ToolRefNode` に写像する（先頭 `&` は保持しない）。
+5. `kv_token` は `KVTokenNode` に写像し、`value` は `BareValueNode` または `StringLiteralNode`。
+6. `quoted_text` はデコード後文字列を `value`、入力そのままを `raw` として保持すること（SHOULD）。
+7. `output_id` が存在する場合は `RunLineNode.output` に `IdentifierNode` を設定し、未指定の場合は `null`。
+
+#### 7.4.4 AST 正規化規則
+
+1. ノードの `name` は第 6 章の識別子規則を満たすこと。
+2. 連続空白やタブは構文上同値として扱い、AST には空白トークンを保存しない（必要なら `span` で復元）。
+3. `BareValue` は単位・温度・duration の意味解釈前の字句値を保持する。
+4. 意味解析（参照解決、重複出力検出、型妥当性）は AST 生成後フェーズで行う。
+
+#### 7.4.5 例: AST 生成結果
+
+入力:
+
+```text
+boil $spaghetti water=2L salt=2g -> boiled_pasta
+```
+
+出力例:
+
+```json
+{
+  "type": "RunLine",
+  "action": { "type": "Identifier", "name": "boil" },
+  "args": [
+    { "type": "IngredientRef", "name": "spaghetti" },
+    {
+      "type": "KV",
+      "key": { "type": "Identifier", "name": "water" },
+      "value": { "type": "BareValue", "raw": "2L" }
+    },
+    {
+      "type": "KV",
+      "key": { "type": "Identifier", "name": "salt" },
+      "value": { "type": "BareValue", "raw": "2g" }
+    }
+  ],
+  "output": { "type": "Identifier", "name": "boiled_pasta" }
+}
+```
+
 ## 8. 時間と温度
 
 ### 8.1 Duration
