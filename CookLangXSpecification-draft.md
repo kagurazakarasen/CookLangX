@@ -400,6 +400,29 @@ boil $spaghetti water=2L salt=2g -> boiled_pasta
 }
 ```
 
+### 7.5 コメント仕様（YAML レイヤ）
+
+CookLangX のコメントは YAML 標準の `#` コメントを使用します。
+
+#### 7.5.1 記法
+
+1. 行頭コメント: 行頭（空白後を含む）で `#` から行末までをコメントとして扱う。
+2. 行末コメント: 値の後ろに空白を 1 つ以上置いて `#` 以降をコメントとして扱う。
+
+例:
+
+```yaml
+# 2人前レシピ
+servings: 2 # 目標人数
+```
+
+#### 7.5.2 解析規則
+
+1. YAML パーサは `#` コメントをデータモデルに含めない。
+2. `run` フィールドの DSL パースは、YAML 解析後の文字列値に対して実施する。
+3. したがって、DSL 自体に独自コメント構文は定義しない（本仕様では YAML コメントのみを採用）。
+4. `#` を DSL 文字列内で値として保持したい場合は、YAML 文字列として引用符で囲むこと。
+
 ## 8. 時間と温度
 
 ### 8.1 Duration
@@ -530,12 +553,14 @@ Extended は次を追加します。
 ## 15. 正準例（カルボナーラ）
 
 ```yaml
+# レシピ基本情報
 meta:
   name: Carbonara
   servings: 2
   lang: ja
   spec_version: 0.1
 
+# 材料一覧
 ingredients:
   - id: spaghetti
     name: Spaghetti
@@ -554,23 +579,25 @@ ingredients:
     amount: 2
     unit: g
 
+# 調理に使用する道具
 tools:
   - id: pot
     name: Pot
   - id: frying_pan
     name: Frying Pan
 
+# 依存関係を持つ手順定義
 steps:
   - id: boil_pasta
     run: boil $spaghetti water=2L salt=2g -> boiled_pasta
     tools: [pot]
     time: 8min
-    temperature: 100C
+    temperature: 100C # 沸騰温度
 
   - id: cook_bacon
     run: fry $bacon heat=medium -> crisp_bacon
     tools: [frying_pan]
-    time: 4min
+    time: 4min # パスタと並列可能
 
   - id: make_egg_mix
     run: mix $egg -> egg_mix
@@ -579,7 +606,7 @@ steps:
   - id: combine
     run: combine %boiled_pasta %crisp_bacon %egg_mix -> carbonara
     depends_on: [boil_pasta, cook_bacon, make_egg_mix]
-    note: Keep heat low to avoid scrambling egg.
+    note: Keep heat low to avoid scrambling egg. # 人間向け補足
 
   - id: plate
     run: serve %carbonara
