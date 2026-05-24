@@ -209,6 +209,78 @@ mix %boiled_pasta %crisp_bacon $egg -> pasta_mix
 
 実装は追加のアクション名を MAY でサポートして構いません。
 
+### 7.3 DSL の形式 EBNF
+
+本節は `run` フィールドに入る 1 行 DSL の字句・構文を EBNF で定義します。
+
+#### 7.3.1 構文（EBNF）
+
+```ebnf
+run_line        = S* , action , ( S+ , argument )* , ( S* , arrow , S* , output_id )? , S* ;
+
+action          = identifier ;
+argument        = reference | kv_token | quoted_text ;
+
+reference       = ingredient_ref | output_ref | tool_ref ;
+ingredient_ref  = "$" , identifier ;
+output_ref      = "%" , identifier ;
+tool_ref        = "&" , identifier ;
+
+kv_token        = key , "=" , value ;
+key             = identifier ;
+value           = bare_value | quoted_text ;
+
+bare_value      = bare_char , { bare_char } ;
+bare_char       = ALNUM | "_" | "." | ":" | "/" | "+" | "-" ;
+
+quoted_text     = "\"" , { qchar } , "\"" ;
+qchar           = escaped | qsafe ;
+escaped         = "\\" , ( "\\" | "\"" | "n" | "t" ) ;
+qsafe           = ? any character except backslash and double quote ? ;
+
+output_id       = identifier ;
+identifier      = ident_start , { ident_rest } ;
+ident_start     = "a".."z" ;
+ident_rest      = "a".."z" | "0".."9" | "_" ;
+
+arrow           = "->" ;
+S               = " " | "\t" ;
+ALNUM           = "a".."z" | "A".."Z" | "0".."9" ;
+```
+
+#### 7.3.2 追加制約（意味規則）
+
+EBNF だけでは表現しきれないため、次の規則を併用します。
+
+1. `action` は空であってはならない。
+2. `reference` に現れる `identifier` は、第 6 章およびシンボル解決規則に従って既知であること（未知参照は `CKX004`）。
+3. `output_id` は同一スコープで重複してはならない（重複は `CKX003`）。
+4. `kv_token` の `key` は 1 回の `run_line` 内で重複してもよいが、重複時の優先規則は実装が定義すること。
+5. `quoted_text` のエスケープ解釈は JSON 互換の最小集合（`\\`, `\"`, `\n`, `\t`）を MUST でサポートすること。
+
+#### 7.3.3 妥当例と不正例
+
+妥当例:
+
+```text
+boil $spaghetti water=2L salt=2g -> boiled_pasta
+season %soup level="light" note="finish with olive oil" -> seasoned_soup
+```
+
+不正例:
+
+```text
+boil ->
+fry $bacon heat==medium
+mix %unknown_output -> plated
+```
+
+上記不正例の想定理由:
+
+1. `boil ->` は `output_id` 欠落。
+2. `heat==medium` は `kv_token` 構文違反。
+3. `%unknown_output` はシンボル解決時に未知参照。
+
 ## 8. 時間と温度
 
 ### 8.1 Duration
@@ -432,8 +504,7 @@ steps:
 
 ## 20. v0.2 に向けた未解決項目
 
-1. DSL の形式 EBNF
-2. 標準アクションオントロジーと多言語エイリアス
-3. アレルゲンおよび栄養プロファイルスキーマ
-4. 決定的スケジューラ方針プロファイル
-5. スマート家電向け IoT コマンドバインディングプロファイル
+1. 標準アクションオントロジーと多言語エイリアス
+2. アレルゲンおよび栄養プロファイルスキーマ
+3. 決定的スケジューラ方針プロファイル
+4. スマート家電向け IoT コマンドバインディングプロファイル
