@@ -1,0 +1,119 @@
+# 応用サンプル: 並列工程、状態、スケーリング前提の設計
+# 学習ポイント: state_in/state_out, depends_on の整理、実運用寄りの構成
+
+meta:
+  name: Weeknight Chicken Curry
+  servings: 4
+  lang: ja
+  spec_version: 0.1
+  tags: [advanced, parallel, one_pot]
+
+ingredients:
+  - id: chicken
+    name: Chicken Thigh
+    amount: 500
+    unit: g
+  - id: onion
+    name: Onion
+    amount: 2
+    unit: piece
+  - id: carrot
+    name: Carrot
+    amount: 1
+    unit: piece
+  - id: potato
+    name: Potato
+    amount: 2
+    unit: piece
+  - id: garlic
+    name: Garlic
+    amount: 2
+    unit: clove
+  - id: ginger
+    name: Ginger
+    amount: 10
+    unit: g
+  - id: oil
+    name: Cooking Oil
+    amount: 1
+    unit: tbsp
+  - id: curry_powder
+    name: Curry Powder
+    amount: 2
+    unit: tbsp
+  - id: water
+    name: Water
+    amount: 700
+    unit: ml
+  - id: salt
+    name: Salt
+    amount: 4
+    unit: g
+  - id: rice
+    name: Cooked Rice
+    amount: 4
+    unit: piece
+    scalable: false
+
+tools:
+  - id: knife
+    name: Knife
+  - id: board
+    name: Cutting Board
+  - id: pot
+    name: Pot
+  - id: bowl
+    name: Bowl
+
+steps:
+  # 下味工程
+  - id: marinate_chicken
+    run: season $chicken $salt $curry_powder -> marinated_chicken
+    tools: [bowl]
+    time: 10min
+    state_out:
+      chicken: seasoned
+
+  # 野菜カットは独立工程として並列化しやすくする
+  - id: chop_onion
+    run: cut $onion style="thin slices" -> sliced_onion
+    tools: [knife, board]
+    time: 3min
+
+  - id: chop_root_veg
+    run: cut $carrot $potato style="chunk" -> root_veg
+    tools: [knife, board]
+    time: 4min
+
+  - id: prep_aromatics
+    run: cut $garlic $ginger style="minced" -> aromatics
+    tools: [knife, board]
+    time: 2min
+
+  # 鍋工程は道具競合が起きるので直列化する
+  - id: start_curry_base
+    run: saute %sliced_onion %aromatics $oil heat=medium -> curry_base
+    tools: [pot]
+    depends_on: [chop_onion, prep_aromatics]
+    time: 6min
+    temperature: medium
+    state_in:
+      onion: raw
+    state_out:
+      onion: translucent
+
+  - id: stew_curry
+    run: simmer %curry_base %marinated_chicken %root_veg $water -> curry_stew
+    tools: [pot]
+    depends_on: [start_curry_base, marinate_chicken, chop_root_veg]
+    time: 20min
+    temperature: 95C
+    note: Stir every 5 minutes to avoid scorching.
+
+  - id: final_season
+    run: season %curry_stew level="adjust_salt" -> finished_curry
+    depends_on: [stew_curry]
+
+  - id: serve
+    run: serve %finished_curry $rice
+    depends_on: [final_season]

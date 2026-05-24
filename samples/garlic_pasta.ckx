@@ -1,0 +1,51 @@
+# サンプルレシピ：ガーリックパスタ完全版
+
+meta:
+  name: Garlic Pasta
+  servings: 2
+  lang: ja
+  spec_version: 0.1
+
+ingredients:
+  - id: spaghetti
+    name: Spaghetti
+    amount: 200
+    unit: g
+  - id: garlic
+    name: Garlic
+    amount: 2
+    unit: clove
+  - id: olive_oil
+    name: Olive Oil
+    amount: 2
+    unit: tbsp
+  - id: salt
+    name: Salt
+    amount: 2
+    unit: g
+
+tools:
+  - id: pot
+    name: Pot
+  - id: frying_pan
+    name: Frying Pan
+
+steps:
+  - id: boil_pasta
+    run: boil $spaghetti water=2L salt=2g -> boiled_pasta
+    tools: [pot]
+    time: 8min
+    temperature: 100C
+
+  - id: cook_garlic_oil
+    run: saute $garlic $olive_oil heat=low -> garlic_oil
+    tools: [frying_pan]
+    time: 3min
+
+  - id: finish
+    run: combine %boiled_pasta %garlic_oil -> garlic_pasta
+    depends_on: [boil_pasta, cook_garlic_oil]
+
+  - id: plate
+    run: serve %garlic_pasta
+    depends_on: [finish]

@@ -1,0 +1,26 @@
+# 初級サンプル: まずは最小構成を覚える
+# 学習ポイント: meta / ingredients / steps と run の基本形
+
+meta:
+  name: Boiled Egg Starter
+  servings: 1
+  lang: ja
+  spec_version: 0.1
+
+ingredients:
+  - id: egg
+    name: Egg
+    amount: 1
+    unit: piece
+
+# 初級では tools は省略してもよい（任意セクション）
+steps:
+  - id: boil_egg
+    run: boil $egg time=8min water=500ml -> boiled_egg
+    time: 8min
+    temperature: 100C
+
+  # 出力参照 %boiled_egg の使い方を覚える
+  - id: serve_egg
+    run: serve %boiled_egg
+    depends_on: [boil_egg]
