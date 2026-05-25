@@ -1,0 +1,80 @@
+# 中級サンプル: 参照と依存関係をしっかり使う
+# 学習ポイント: tools, depends_on, 複数 output の合流
+
+meta:
+  name: Oyakodon Practice
+  servings: 2
+  lang: ja
+  spec_version: 0.1
+
+ingredients:
+  - id: chicken
+    name: Chicken Thigh
+    amount: 200
+    unit: g
+  - id: onion
+    name: Onion
+    amount: 1
+    unit: piece
+  - id: egg
+    name: Egg
+    amount: 2
+    unit: piece
+  - id: dashi
+    name: Dashi
+    amount: 200
+    unit: ml
+  - id: soy_sauce
+    name: Soy Sauce
+    amount: 2
+    unit: tbsp
+  - id: sugar
+    name: Sugar
+    amount: 1
+    unit: tbsp
+  - id: rice
+    name: Cooked Rice
+    amount: 2
+    unit: piece
+
+tools:
+  - id: knife
+    name: Knife
+  - id: pan
+    name: Pan
+  - id: bowl
+    name: Bowl
+
+steps:
+  # 材料の下処理を分けることで読みやすくする
+  - id: prep_onion
+    run: cut $onion style="thin slices" -> sliced_onion
+    tools: [knife]
+    time: 2min
+
+  - id: prep_chicken
+    run: cut $chicken style="bite size" -> cut_chicken
+    tools: [knife]
+    time: 3min
+
+  - id: make_egg_mix
+    run: mix $egg -> egg_mix
+    tools: [bowl]
+    time: 1min
+
+  - id: simmer_base
+    run: simmer %cut_chicken %sliced_onion $dashi $soy_sauce $sugar -> simmered_base
+    tools: [pan]
+    depends_on: [prep_onion, prep_chicken]
+    time: 6min
+    temperature: medium
+
+  # 複数 output を combine で合流
+  - id: finish_bowl
+    run: combine %simmered_base %egg_mix $rice -> oyakodon
+    depends_on: [simmer_base, make_egg_mix]
+    note: Keep heat low after adding egg.
+
+  - id: plate
+    run: serve %oyakodon
+    depends_on: [finish_bowl]
