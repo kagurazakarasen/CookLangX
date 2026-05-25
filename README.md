@@ -25,6 +25,23 @@ CookLangX は、料理レシピを実行可能な手順として扱うための�
 - バリデーションエラーコード
 - 正準例（カルボナーラ）
 
+## 学習ガイドとサンプル
+
+CookLangX を手を動かして学ぶための資料を用意しています。
+
+- 入門ガイド: [HowTo.md](HowTo.md)
+- 写経用サンプル: [samples/garlic_pasta.ckx](samples/garlic_pasta.ckx)
+- レベル別サンプル（コメント付き）:
+	- [samples/beginner_boiled_egg.ckx](samples/beginner_boiled_egg.ckx)
+	- [samples/intermediate_oyako_don.ckx](samples/intermediate_oyako_don.ckx)
+	- [samples/advanced_weeknight_curry.ckx](samples/advanced_weeknight_curry.ckx)
+
+おすすめの読み進め方:
+
+1. [HowTo.md](HowTo.md) を上から読む
+2. 初級サンプルを写経する
+3. 中級・応用サンプルで依存関係と設計意図を確認する
+
 ## このリポジトリの現状
 
 - 仕様策定フェーズ（v0.1-draft）
